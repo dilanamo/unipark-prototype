@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniPark — Campus Parking Management System</title>
+<style>
+  :root{
+    --navy:#0f2540; --navy-soft:#33465e;
+    --blue:#1d6fe0; --blue-dark:#1559b8; --blue-soft:#e8f1fd;
+    --green:#1a9e54; --green-soft:#e6f6ec;
+    --red:#d93a3a; --red-soft:#fdeaea;
+    --amber:#c47a12; --amber-soft:#fdf3e3;
+    --gray:#8a94a3; --gray-soft:#f1f3f6; --line:#dfe4ea;
+    --radius:14px; --shadow:0 6px 24px rgba(15,37,64,.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:#e9edf2; color:var(--navy); line-height:1.5;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  }
+  /* ===== Phone frame on desktop, full width on mobile ===== */
+  .app{
+    width:100%; max-width:430px; min-height:100vh; background:#fff;
+    display:flex; flex-direction:column; position:relative;
+  }
+  @media(min-width:520px){
+    body{padding:32px 16px}
+    .app{min-height:calc(100vh - 64px); border-radius:26px; box-shadow:var(--shadow); overflow:hidden}
+  }
+  .screen{display:none; flex:1; flex-direction:column; padding:20px 20px 28px; animation:fade .25s ease}
+  .screen.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ===== Typography & common ===== */
+  h1{font-size:1.55rem; letter-spacing:-.01em}
+  h2{font-size:1.15rem}
+  .sub{color:var(--navy-soft); font-size:.92rem; margin-top:4px}
+  .muted{color:var(--gray); font-size:.82rem}
+  .icon{width:22px;height:22px;flex:none}
+  a{color:var(--blue); font-size:.88rem; font-weight:600; text-decoration:none}
+  a:hover,a:focus-visible{text-decoration:underline}
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:15px 18px; border:none; border-radius:12px;
+    font-size:1rem; font-weight:700; cursor:pointer; transition:transform .08s ease, background .15s ease;
+    font-family:inherit; text-decoration:none;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn:focus-visible{outline:3px solid rgba(29,111,224,.4); outline-offset:2px}
+  .btn-primary{background:var(--blue); color:#fff}
+  .btn-primary:hover{background:var(--blue-dark)}
+  .btn-primary:disabled{background:#b9c6d8; cursor:not-allowed}
+  .btn-secondary{background:var(--gray-soft); color:var(--navy)}
+  .btn-secondary:hover{background:#e3e8ee}
+  .btn-danger{background:var(--red); color:#fff}
+  .btn-danger:hover{background:#b92f2f}
+  .btn-outline{background:#fff; color:var(--blue); border:2px solid var(--blue)}
+  .btn-outline:hover{background:var(--blue-soft)}
+  .btn-sm{padding:9px 14px; font-size:.85rem; width:auto; border-radius:10px}
+
+  .card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:0 2px 8px rgba(15,37,64,.05)}
+  .stack{display:flex; flex-direction:column; gap:14px}
+  .spacer{flex:1}
+
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; font-size:.74rem; font-weight:700; letter-spacing:.02em}
+  .badge .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .badge-green{background:var(--green-soft); color:var(--green)}
+  .badge-red{background:var(--red-soft); color:var(--red)}
+  .badge-amber{background:var(--amber-soft); color:var(--amber)}
+  .badge-blue{background:var(--blue-soft); color:var(--blue)}
+
+  /* ===== Header ===== */
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:800; font-size:1.06rem}
+  .logo{
+    width:36px;height:36px;border-radius:10px;background:var(--blue); color:#fff;
+    display:flex;align-items:center;justify-content:center; font-weight:800; font-size:1.05rem;
+  }
+  .page-head{margin-bottom:16px}
+
+  /* ===== Login ===== */
+  #screen-login{justify-content:center}
+  .login-hero{text-align:center; margin-bottom:26px}
+  .login-hero .logo{width:64px;height:64px;border-radius:18px;font-size:1.9rem;margin:0 auto 14px; box-shadow:var(--shadow)}
+  .field{margin-bottom:14px}
+  .field label{display:block; font-size:.85rem; font-weight:700; margin-bottom:6px}
+  .field input{
+    width:100%; padding:14px 15px; border:1.5px solid var(--line); border-radius:12px;
+    font-size:1rem; font-family:inherit; color:var(--navy); background:#fbfcfd;
+  }
+  .field input:focus{outline:none; border-color:var(--blue); background:#fff; box-shadow:0 0 0 3px rgba(29,111,224,.15)}
+  .login-note{display:flex; gap:8px; align-items:flex-start; background:var(--blue-soft); border-radius:12px; padding:12px 14px; font-size:.84rem; color:var(--navy-soft); margin:18px 0}
+  .login-note .icon{color:var(--blue); margin-top:1px}
+
+  /* ===== Zone cards ===== */
+  .zone-card{display:flex; align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer;
+    background:#fff; border:1.5px solid var(--line); border-radius:var(--radius); padding:16px;
+    font-family:inherit; transition:border-color .15s, box-shadow .15s, transform .08s}
+  .zone-card:hover{border-color:var(--blue); box-shadow:0 4px 14px rgba(29,111,224,.12)}
+  .zone-card:active{transform:scale(.985)}
+  .zone-card.full:hover{border-color:var(--red)}
+  .zone-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+  .zone-icon .icon{width:24px;height:24px}
+  .zone-icon.green{background:var(--green-soft); color:var(--green)}
+  .zone-icon.amber{background:var(--amber-soft); color:var(--amber)}
+  .zone-icon.red{background:var(--red-soft); color:var(--red)}
+  .zone-meta{flex:1; min-width:0}
+  .zone-meta h2{margin-bottom:2px}
+  .chev{color:var(--gray); flex:none}
+
+  /* ===== Campus map ===== */
+  .map-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px; box-shadow:0 2px 8px rgba(15,37,64,.05)}
+  .map-card figcaption{font-size:.8rem; color:var(--gray); margin-top:8px; text-align:center}
+
+  /* ===== Availability grid ===== */
+  .updated{display:inline-flex; align-items:center; gap:6px; color:var(--gray); font-size:.8rem; margin-top:4px}
+  .updated .dot-live{width:8px;height:8px;border-radius:50%;background:var(--green); animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 16px}
+  .legend span{display:inline-flex; align-items:center; gap:7px; font-size:.8rem; font-weight:600; color:var(--navy-soft);
+    background:var(--gray-soft); padding:6px 12px; border-radius:999px}
+  .legend i{width:14px;height:14px;border-radius:4px;flex:none}
+
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px}
+  .space{
+    border:2px solid var(--line); border-radius:12px; background:#fff; padding:14px 8px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; font-family:inherit;
+    transition:transform .08s, border-color .15s, background .15s;
+  }
+  .space:active{transform:scale(.95)}
+  .space .space-id{font-weight:800; font-size:1.05rem}
+  .space .space-status{font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em}
+  .space.avail{border-color:#bfe5cd; background:var(--green-soft)}
+  .space.avail .space-id,.space.avail .space-status{color:var(--green)}
+  .space.occ{border-color:#f2caca; background:var(--red-soft); cursor:not-allowed}
+  .space.occ .space-id,.space.occ .space-status{color:var(--red)}
+  .space.selected{border-color:var(--blue); background:var(--blue-soft); box-shadow:0 0 0 3px rgba(29,111,224,.25)}
+  .space.selected .space-id,.space.selected .space-status{color:var(--blue)}
+  .space:focus-visible{outline:3px solid rgba(29,111,224,.5); outline-offset:2px}
+
+  .hint{border-radius:12px; padding:11px 14px; font-size:.85rem; font-weight:600; margin-bottom:14px; display:none}
+  .hint.show{display:block}
+  .hint.info{background:var(--blue-soft); color:var(--blue-dark)}
+  .hint.error{background:var(--red-soft); color:var(--red)}
+
+  /* ===== Confirmation ===== */
+  .confirm-hero{text-align:center; padding:10px 0 4px}
+  .confirm-icon{width:84px;height:84px;border-radius:50%;background:var(--green-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .confirm-icon .icon{width:46px;height:46px;color:var(--green)}
+  .detail-row{display:flex; justify-content:space-between; align-items:center; padding:12px 2px; border-bottom:1px solid var(--line); font-size:.92rem}
+  .detail-row:last-child{border-bottom:none}
+  .detail-row .k{color:var(--gray); font-weight:600}
+  .detail-row .v{font-weight:700; text-align:right}
+  .notice{display:flex; gap:10px; background:var(--amber-soft); border-radius:12px; padding:13px 14px; font-size:.84rem; color:#7a4d0d; margin:14px 0}
+  .notice .icon{color:var(--amber); flex:none; margin-top:1px}
+
+  /* ===== Error screen ===== */
+  .error-hero{text-align:center; padding:26px 0 8px}
+  .error-icon{width:84px;height:84px;border-radius:50%;background:var(--red-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+  .error-icon .icon{width:46px;height:46px;color:var(--red)}
+
+  /* ===== Modal ===== */
+  .overlay{position:absolute; inset:0; background:rgba(15,37,64,.55); display:none; align-items:flex-end; justify-content:center; z-index:50; border-radius:inherit}
+  @media(min-width:520px){.overlay{align-items:center; padding:20px}}
+  .overlay.open{display:flex}
+  .modal{background:#fff; width:100%; border-radius:20px 20px 0 0; padding:24px 22px 28px; animation:slideup .25s ease; max-width:390px}
+  @media(min-width:520px){.modal{border-radius:20px}}
+  @keyframes slideup{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+  .modal h2{margin-bottom:8px}
+  .modal .stack{margin-top:18px}
+
+  /* ===== Directions map ===== */
+  .dir-map{width:100%; border-radius:12px; background:var(--gray-soft)}
+
+  /* ===== Toast ===== */
+  .toast{
+    position:absolute; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:var(--navy); color:#fff; font-size:.85rem; font-weight:600; padding:12px 18px;
+    border-radius:12px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:60;
+    max-width:86%; text-align:center; box-shadow:var(--shadow);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  footer{padding:14px 20px 18px; text-align:center; border-top:1px solid var(--line); background:#fbfcfd}
+  footer p{font-size:.74rem; color:var(--gray)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= SCREEN 1 : LOGIN ================= -->
+  <section class="screen active" id="screen-login" aria-label="Login screen">
+    <div class="login-hero">
+      <div class="logo" aria-hidden="true">P</div>
+      <h1>Welcome to UniPark</h1>
+      <p class="sub">Campus Parking Management System</p>
+    </div>
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="email">University email</label>
+        <input type="email" id="email" name="email" placeholder="name@university.edu" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary">Log In</button>
+      <div style="text-align:center; margin-top:14px">
+        <a href="#" id="forgot-link">Forgot password?</a>
+      </div>
+    </form>
+    <div class="login-note">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <span>Use your university account to access parking services.</span>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- ================= SCREEN 2 : HOME / ZONES ================= -->
+  <section class="screen" id="screen-home" aria-label="Parking zones screen">
+    <div class="topbar">
+      <div class="brand"><div class="logo" aria-hidden="true">P</div><span>UniPark</span></div>
+      <button class="btn btn-outline btn-sm" id="my-res-btn">
+        <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 14h18"/></svg>
+        My Reservation
+      </button>
+    </div>
+    <div class="page-head">
+      <h1>Find Parking</h1>
+      <p class="sub">Choose a parking zone to view current availability.</p>
+    </div>
+    <div class="stack">
+      <button class="zone-card" data-zone="north">
+        <div class="zone-icon green" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.7-4.2A2 2 0 0 1 8.6 5.5h6.8a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
+        </div>
+        <div class="zone-meta">
+          <h2>North Zone</h2>
+          <p class="muted">12 spaces available</p>
+        </div>
+        <span class="badge badge-green"><span class="dot"></span>Available</span>
+        <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+
+      <button class="zone-card" data-zone="main">
+        <div class="zone-icon amber" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.7-4.2A2 2 0 0 1 8.6 5.5h6.8a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
+        </div>
+        <div class="zone-meta">
+          <h2>Main Zone</h2>
+          <p class="muted">3 spaces available</p>
+        </div>
+        <span class="badge badge-amber"><span class="dot"></span>Limited</span>
+        <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+
+      <button class="zone-card full" data-zone="library">
+        <div class="zone-icon red" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.7-4.2A2 2 0 0 1 8.6 5.5h6.8a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
+        </div>
+        <div class="zone-meta">
+          <h2>Library Zone</h2>
+          <p class="muted">0 spaces available</p>
+        </div>
+        <span class="badge badge-red"><span class="dot"></span>Full</span>
+        <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+
+      <figure class="map-card">
+        <svg viewBox="0 0 360 210" width="100%" role="img" aria-label="Campus map showing North, Main and Library parking zones">
+          <rect x="0" y="0" width="360" height="210" rx="10" fill="#f4f7fa"/>
+          <!-- roads -->
+          <path d="M0 105 H360" stroke="#ffffff" stroke-width="18"/>
+          <path d="M120 0 V210" stroke="#ffffff" stroke-width="12"/>
+          <path d="M250 0 V210" stroke="#ffffff" stroke-width="12"/>
+          <path d="M0 105 H360" stroke="#c9d3de" stroke-width="2" stroke-dasharray="10 8"/>
+          <!-- buildings -->
+          <rect x="18" y="18" width="80" height="62" rx="6" fill="#dbe4ee"/>
+          <rect x="140" y="20" width="90" height="58" rx="6" fill="#dbe4ee"/>
+          <rect x="270" y="16" width="74" height="66" rx="6" fill="#dbe4ee"/>
+          <rect x="20" y="140" width="78" height="54" rx="6" fill="#dbe4ee"/>
+          <rect x="150" y="142" width="80" height="52" rx="6" fill="#dbe4ee"/>
+          <rect x="272" y="140" width="70" height="54" rx="6" fill="#dbe4ee"/>
+          <!-- North zone -->
+          <rect x="30" y="36" width="56" height="28" rx="5" fill="#1a9e54" opacity="0.9"/>
+          <text x="58" y="54" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">North</text>
+          <!-- Main zone -->
+          <rect x="158" y="34" width="56" height="28" rx="5" fill="#c47a12" opacity="0.9"/>
+          <text x="186" y="52" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Main</text>
+          <!-- Library zone -->
+          <rect x="286" y="34" width="46" height="28" rx="5" fill="#d93a3a" opacity="0.9"/>
+          <text x="309" y="52" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Library</text>
+          <!-- labels for buildings -->
+          <text x="58" y="82" text-anchor="middle" fill="#8a94a3" font-size="9">Science Hall</text>
+          <text x="185" y="86" text-anchor="middle" fill="#8a94a3" font-size="9">Admin</text>
+          <text x="307" y="93" text-anchor="middle" fill="#8a94a3" font-size="9">Library</text>
+          <text x="59" y="206" text-anchor="middle" fill="#8a94a3" font-size="9">Sports</text>
+          <text x="190" y="206" text-anchor="middle" fill="#8a94a3" font-size="9">Student Center</text>
+          <text x="307" y="206" text-anchor="middle" fill="#8a94a3" font-size="9">Dorms</text>
+          <text x="180" y="100" text-anchor="middle" fill="#8a94a3" font-size="9" font-style="italic">Campus Drive</text>
+        </svg>
+        <figcaption>Campus map — simulated layout, zones marked by color and name</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN 3 : AVAILABILITY ================= -->
+  <section class="screen" id="screen-availability" aria-label="Parking availability screen">
+    <div class="page-head">
+      <h1 id="zone-title">North Parking Zone</h1>
+      <span class="updated"><span class="dot-live"></span>Updated just now</span>
+    </div>
+    <div class="legend" aria-label="Legend">
+      <span><i style="background:var(--green)"></i>Available</span>
+      <span><i style="background:var(--red)"></i>Occupied</span>
+      <span><i style="background:var(--blue)"></i>Reserved</span>
+    </div>
+    <p class="sub" style="margin-bottom:12px">Select an available parking space.</p>
+    <div class="hint" id="space-hint" role="status"></div>
+    <div class="grid" id="space-grid"></div>
+    <div class="stack">
+      <button class="btn btn-primary" id="reserve-btn" disabled>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><path d="M9 15l2 2 4-4"/></svg>
+        <span id="reserve-label">Reserve Space</span>
+      </button>
+      <button class="btn btn-secondary" id="back-zones-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to Zones
+      </button>
+      <div style="text-align:center"><a href="#" id="test-unavailable">Test unavailable space</a></div>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN 4 : CONFIRMATION ================= -->
+  <section class="screen" id="screen-confirm" aria-label="Reservation confirmation screen">
+    <div class="confirm-hero">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h1>Reservation Confirmed</h1>
+      <p class="sub">Your parking space is reserved and active.</p>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <div class="detail-row"><span class="k">Parking Zone</span><span class="v" id="cf-zone">North Parking Zone</span></div>
+      <div class="detail-row"><span class="k">Parking Space</span><span class="v" id="cf-space">A1</span></div>
+      <div class="detail-row"><span class="k">Reservation Number</span><span class="v">UP-1048</span></div>
+      <div class="detail-row"><span class="k">Date</span><span class="v">5 October 2026</span></div>
+      <div class="detail-row"><span class="k">Time</span><span class="v">08:30–10:30</span></div>
+      <div class="detail-row"><span class="k">Status</span><span class="badge badge-green"><span class="dot"></span>Active</span></div>
+    </div>
+    <div class="notice">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg>
+      <span>Please arrive before 08:45. Your reservation may expire if you do not arrive on time.</span>
+    </div>
+    <div class="stack">
+      <button class="btn btn-primary" id="directions-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l19-8-8 19-2.5-8.5z"/></svg>
+        Open Directions
+      </button>
+      <button class="btn btn-danger" id="cancel-btn">Cancel Reservation</button>
+      <button class="btn btn-secondary" id="confirm-home-btn">Back to Home</button>
+    </div>
+  </section>
+
+  <!-- ================= SCREEN 5 : ERROR ================= -->
+  <section class="screen" id="screen-error" aria-label="Error and recovery screen">
+    <div class="error-hero">
+      <div class="error-icon" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      </div>
+      <h1>Space Unavailable</h1>
+      <p class="sub" style="max-width:300px;margin:8px auto 0">Another user reserved space A1 a moment ago. Please select a different available parking space.</p>
+    </div>
+    <div class="spacer"></div>
+    <div class="stack">
+      <button class="btn btn-primary" id="view-spaces-btn">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        View Available Spaces
+      </button>
+      <button class="btn btn-secondary" id="error-home-btn">Back to Home</button>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+    <p>UniPark · Prototype mode: simulated data · No real parking, payment or sensor connection</p>
+    <button class="btn btn-outline btn-sm" id="share-btn" style="margin-top:10px">
+      <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+      Share / Publish Prototype
+    </button>
+  </footer>
+
+  <!-- ================= MODALS ================= -->
+  <div class="overlay" id="overlay-library" role="dialog" aria-modal="true" aria-labelledby="lib-title">
+    <div class="modal">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="zone-icon red" style="width:42px;height:42px" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        </div>
+        <div>
+          <h2 id="lib-title">Zone Full</h2>
+          <p class="sub" style="margin-top:4px">This parking zone is currently full. Please choose another zone.</p>
+        </div>
+      </div>
+      <div class="stack">
+        <button class="btn btn-primary" data-close="overlay-library">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay-directions" role="dialog" aria-modal="true" aria-labelledby="dir-title">
+    <div class="modal">
+      <h2 id="dir-title">Directions to North Parking Zone</h2>
+      <p class="sub">Simulated campus route — for prototype demonstration only.</p>
+      <svg class="dir-map" viewBox="0 0 340 190" role="img" aria-label="Route from Main Gate to North Parking Zone">
+        <rect width="340" height="190" rx="10" fill="#eef2f6"/>
+        <path d="M0 95 H340" stroke="#fff" stroke-width="20"/>
+        <path d="M110 0 V190" stroke="#fff" stroke-width="12"/>
+        <rect x="140" y="20" width="90" height="55" rx="6" fill="#dbe4ee"/>
+        <text x="185" y="52" text-anchor="middle" fill="#8a94a3" font-size="10">Admin</text>
+        <rect x="240" y="120" width="80" height="55" rx="6" fill="#dbe4ee"/>
+        <text x="280" y="151" text-anchor="middle" fill="#8a94a3" font-size="10">Library</text>
+        <!-- route -->
+        <path d="M20 150 H20 V95 H58" fill="none" stroke="#1d6fe0" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 6"/>
+        <circle cx="20" cy="150" r="9" fill="#1d6fe0"/>
+        <text x="20" y="176" text-anchor="middle" fill="#33465e" font-size="10" font-weight="700">Main Gate</text>
+        <rect x="58" y="72" width="52" height="46" rx="8" fill="#1a9e54"/>
+        <text x="84" y="91" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">North</text>
+        <text x="84" y="104" text-anchor="middle" fill="#fff" font-size="9">Zone P</text>
+        <text x="180" y="92" text-anchor="middle" fill="#8a94a3" font-size="9" font-style="italic">Head north on Campus Drive (2 min)</text>
+      </svg>
+      <div class="stack">
+        <button class="btn btn-primary" data-close="overlay-directions">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay-cancel" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+    <div class="modal" id="cancel-modal-body">
+      <h2 id="cancel-title">Cancel Reservation?</h2>
+      <p class="sub">Are you sure you want to cancel this reservation?</p>
+      <div class="stack">
+        <button class="btn btn-danger" id="yes-cancel-btn">Yes, Cancel</button>
+        <button class="btn btn-secondary" data-close="overlay-cancel">Keep Reservation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay-share" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="modal">
+      <h2 id="share-title">Share / Publish Prototype</h2>
+      <p class="sub">This prototype is a single static HTML file. Upload it to any static host to get a public link — all buttons and interactions work without a server.</p>
+      <div class="card" style="margin-top:14px; background:var(--gray-soft)">
+        <p style="font-size:.82rem; font-weight:700; margin-bottom:6px">Option 1 — No account, one command</p>
+        <p style="font-size:.8rem; color:var(--navy-soft)">Run in a terminal:<br><code style="background:#fff;padding:2px 6px;border-radius:6px">curl -F "file=@unipark_prototype.html" https://0x0.st</code><br>The response is your public URL.</p>
+      </div>
+      <div class="card" style="margin-top:10px; background:var(--gray-soft)">
+        <p style="font-size:.82rem; font-weight:700; margin-bottom:6px">Option 2 — Drag &amp; drop</p>
+        <p style="font-size:.8rem; color:var(--navy-soft)">Open app.netlify.com/drop or tiiny.host and drop this HTML file. You get an https:// link instantly (free account required).</p>
+      </div>
+      <div class="stack">
+        <button class="btn btn-primary" id="copy-link-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Copy Page Link
+        </button>
+        <button class="btn btn-secondary" data-close="overlay-share">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Simulated static data ---------- */
+  var ZONES = {
+    north: {
+      title: "North Parking Zone",
+      spaces: [
+        {id:"A1", status:"available"},
+        {id:"A2", status:"occupied"},
+        {id:"A3", status:"available"},
+        {id:"A4", status:"available"},
+        {id:"A5", status:"occupied"},
+        {id:"A6", status:"available"}
+      ]
+    },
+    main: {
+      title: "Main Parking Zone",
+      spaces: [
+        {id:"B1", status:"occupied"},
+        {id:"B2", status:"available"},
+        {id:"B3", status:"available"},
+        {id:"B4", status:"occupied"},
+        {id:"B5", status:"available"},
+        {id:"B6", status:"occupied"}
+      ]
+    }
+  };
+
+  var state = {
+    zoneKey: "north",
+    selected: null,
+    reservation: null   // {zoneKey, spaceId}
+  };
+
+  /* ---------- Helpers ---------- */
+  function $(id){ return document.getElementById(id); }
+  function showScreen(id){
+    var screens = document.querySelectorAll(".screen");
+    for (var i=0;i<screens.length;i++){ screens[i].classList.remove("active"); }
+    $(id).classList.add("active");
+    window.scrollTo(0,0);
+  }
+  function openOverlay(id){ $(id).classList.add("open"); }
+  function closeOverlay(id){ $(id).classList.remove("open"); }
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2600);
+  }
+
+  /* ---------- Screen 1: Login ---------- */
+  $("login-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    showScreen("screen-home");
+  });
+  $("forgot-link").addEventListener("click", function(e){
+    e.preventDefault();
+    toast("Password reset is disabled in this prototype.");
+  });
+
+  /* ---------- Screen 2: Home ---------- */
+  var zoneCards = document.querySelectorAll(".zone-card");
+  for (var i=0;i<zoneCards.length;i++){
+    zoneCards[i].addEventListener("click", function(){
+      var z = this.getAttribute("data-zone");
+      if (z === "library"){
+        openOverlay("overlay-library");
+        return;
+      }
+      state.zoneKey = z;
+      renderAvailability();
+      showScreen("screen-availability");
+    });
+  }
+
+  $("my-res-btn").addEventListener("click", function(){
+    if (state.reservation){
+      populateConfirmation();
+      showScreen("screen-confirm");
+    } else {
+      toast("You have no active reservation.");
+    }
+  });
+
+  /* ---------- Screen 3: Availability ---------- */
+  function renderAvailability(){
+    var zone = ZONES[state.zoneKey];
+    state.selected = null;
+    $("zone-title").textContent = zone.title;
+    $("reserve-btn").disabled = true;
+    $("reserve-label").textContent = "Reserve Space";
+    hideHint();
+
+    var grid = $("space-grid");
+    grid.innerHTML = "";
+    zone.spaces.forEach(function(sp){
+      var btn = document.createElement("button");
+      btn.className = "space " + (sp.status === "available" ? "avail" : "occ");
+      btn.setAttribute("aria-label", "Space " + sp.id + ", " + sp.status);
+      btn.innerHTML = '<span class="space-id">' + sp.id + '</span>' +
+                      '<span class="space-status">' + (sp.status === "available" ? "Available" : "Occupied") + '</span>';
+      btn.addEventListener("click", function(){ onSpaceClick(sp, btn); });
+      grid.appendChild(btn);
+    });
+  }
+
+  function onSpaceClick(sp, btn){
+    if (sp.status !== "available"){
+      showHint("error", "Space " + sp.id + " is occupied. Please select an available space.");
+      return;
+    }
+    var prev = document.querySelector(".space.selected");
+    if (prev){ prev.classList.remove("selected"); }
+    btn.classList.add("selected");
+    state.selected = sp.id;
+    $("reserve-btn").disabled = false;
+    $("reserve-label").textContent = "Reserve Space " + sp.id;
+    showHint("info", "Space " + sp.id + " selected.");
+  }
+
+  function showHint(kind, msg){
+    var h = $("space-hint");
+    h.className = "hint show " + kind;
+    h.textContent = msg;
+  }
+  function hideHint(){
+    var h = $("space-hint");
+    h.className = "hint";
+    h.textContent = "";
+  }
+
+  $("reserve-btn").addEventListener("click", function(){
+    if (!state.selected){ return; }
+    state.reservation = { zoneKey: state.zoneKey, spaceId: state.selected };
+    populateConfirmation();
+    showScreen("screen-confirm");
+  });
+
+  $("back-zones-btn").addEventListener("click", function(){
+    showScreen("screen-home");
+  });
+
+  $("test-unavailable").addEventListener("click", function(e){
+    e.preventDefault();
+    showScreen("screen-error");
+  });
+
+  /* ---------- Screen 4: Confirmation ---------- */
+  function populateConfirmation(){
+    var zone = ZONES[state.reservation.zoneKey];
+    $("cf-zone").textContent = zone.title;
+    $("cf-space").textContent = state.reservation.spaceId;
+    $("dir-title").textContent = "Directions to " + zone.title;
+  }
+
+  $("directions-btn").addEventListener("click", function(){
+    openOverlay("overlay-directions");
+  });
+
+  $("cancel-btn").addEventListener("click", function(){
+    $("cancel-modal-body").innerHTML =
+      '<h2 id="cancel-title">Cancel Reservation?</h2>' +
+      '<p class="sub">Are you sure you want to cancel this reservation?</p>' +
+      '<div class="stack">' +
+        '<button class="btn btn-danger" id="yes-cancel-btn">Yes, Cancel</button>' +
+        '<button class="btn btn-secondary" data-close="overlay-cancel">Keep Reservation</button>' +
+      '</div>';
+    bindCancelModal();
+    openOverlay("overlay-cancel");
+  });
+
+  function bindCancelModal(){
+    $("yes-cancel-btn").addEventListener("click", function(){
+      state.reservation = null;
+      $("cancel-modal-body").innerHTML =
+        '<div style="text-align:center;padding:6px 0 2px">' +
+          '<div class="confirm-icon" style="width:64px;height:64px;margin-bottom:10px" aria-hidden="true">' +
+            '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#d93a3a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+          '</div>' +
+          '<h2 id="cancel-title">Reservation Cancelled</h2>' +
+          '<p class="sub">Your parking space has been released.</p>' +
+        '</div>' +
+        '<div class="stack">' +
+          '<button class="btn btn-primary" id="find-parking-btn">Find Parking</button>' +
+        '</div>';
+      $("find-parking-btn").addEventListener("click", function(){
+        closeOverlay("overlay-cancel");
+        showScreen("screen-home");
+      });
+    });
+  }
+
+  $("confirm-home-btn").addEventListener("click", function(){
+    showScreen("screen-home");
+  });
+
+  /* ---------- Screen 5: Error ---------- */
+  $("view-spaces-btn").addEventListener("click", function(){
+    // Simulate that A1 was just taken: mark it occupied on return
+    var zone = ZONES[state.zoneKey];
+    zone.spaces.forEach(function(sp){
+      if (sp.id === "A1" && state.zoneKey === "north"){ sp.status = "occupied"; }
+    });
+    renderAvailability();
+    showHint("error", "Space A1 is now occupied. Please select a different available space.");
+    showScreen("screen-availability");
+  });
+
+  $("error-home-btn").addEventListener("click", function(){
+    showScreen("screen-home");
+  });
+
+  /* ---------- Generic modal close buttons ---------- */
+  var closers = document.querySelectorAll("[data-close]");
+  for (var j=0;j<closers.length;j++){
+    closers[j].addEventListener("click", function(){
+      closeOverlay(this.getAttribute("data-close"));
+    });
+  }
+
+  /* ---------- Share / Publish ---------- */
+  $("share-btn").addEventListener("click", function(){
+    openOverlay("overlay-share");
+  });
+
+  function copyDone(){ toast("Link copied to clipboard."); }
+  function copyFallback(url){
+    var ta = document.createElement("textarea");
+    ta.value = url;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); copyDone(); }
+    catch(e){ toast("Copy manually: " + url); }
+    document.body.removeChild(ta);
+  }
+  $("copy-link-btn").addEventListener("click", function(){
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(copyDone, function(){ copyFallback(url); });
+    } else {
+      copyFallback(url);
+    }
+  });
+
+  /* ---------- Close overlay on backdrop tap ---------- */
+  var overlays = document.querySelectorAll(".overlay");
+  for (var k=0;k<overlays.length;k++){
+    overlays[k].addEventListener("click", function(e){
+      if (e.target === this){ this.classList.remove("open"); }
+    });
+  }
+})();
+</script>
+</body>
+</html>
